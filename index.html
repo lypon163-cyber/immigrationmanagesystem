@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绿洲共和国 · 签证申请</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🌴 绿洲共和国</h1>
+                <p class="subtitle">签证在线申请系统</p>
+                <span class="badge">线上审核</span>
+            </div>
+
+            <!-- 免签提示区 -->
+            <div id="exemptAlert" class="alert alert-success" style="display:none;">
+                ✅ 您的国籍属于 <strong>免签国家</strong>，无需申请签证，凭护照直接入境！
+            </div>
+
+            <form id="visaForm">
+                <div class="form-group">
+                    <label>📛 申请人姓名</label>
+                    <input type="text" id="name" placeholder="例如：张三" required>
+                </div>
+
+                <div class="form-group">
+                    <label>🛂 护照号码</label>
+                    <input type="text" id="passport" placeholder="例如：E12345678" required>
+                </div>
+
+                <div class="form-group">
+                    <label>🌍 国籍（三位字母代码）</label>
+                    <input type="text" id="nationality" placeholder="例如：CHN（中国）" required maxlength="3" style="text-transform:uppercase;">
+                    <small class="hint">💡 输入后自动检测是否免签</small>
+                </div>
+
+                <div class="form-group">
+                    <label>📎 上传附件（护照扫描件/照片）</label>
+                    <input type="file" id="attachment" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <small class="hint">支持 PDF、JPG、PNG 格式</small>
+                </div>
+
+                <button type="submit" id="submitBtn">📨 提交申请</button>
+            </form>
+
+            <div id="resultMessage" class="message-box"></div>
+            <hr>
+            <p class="footer-link"><a href="admin.html">🔐 管理员审核入口</a></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // 页面加载后绑定事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const nationalityInput = document.getElementById('nationality');
+            const exemptAlert = document.getElementById('exemptAlert');
+
+            // 实时检测免签
+            nationalityInput.addEventListener('input', function() {
+                const code = this.value.trim().toUpperCase();
+                if (code.length === 3) {
+                    if (isVisaExempt(code)) {
+                        exemptAlert.style.display = 'block';
+                    } else {
+                        exemptAlert.style.display = 'none';
+                    }
+                } else {
+                    exemptAlert.style.display = 'none';
+                }
+            });
+
+            // 表单提交
+            document.getElementById('visaForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('name').value.trim();
+                const passport = document.getElementById('passport').value.trim();
+                const nationality = document.getElementById('nationality').value.trim().toUpperCase();
+                const fileInput = document.getElementById('attachment');
+                const file = fileInput.files[0];
+
+                if (!name || !passport || !nationality || !file) {
+                    showMessage('请完整填写所有字段并上传附件', 'error');
+                    return;
+                }
+
+                if (nationality.length !== 3) {
+                    showMessage('国籍代码必须为3位字母，例如 CHN', 'error');
+                    return;
+                }
+
+                // 检查免签
+                if (isVisaExempt(nationality)) {
+                    showMessage('您的国籍属于免签国家，无需提交申请！', 'success');
+                    return;
+                }
+
+                // 构造申请数据
+                const application = {
+                    id: Date.now(),
+                    name: name,
+                    passport: passport,
+                    nationality: nationality,
+                    fileName: file.name,
+                    fileSize: (file.size / 1024).toFixed(1) + 'KB',
+                    status: '待审核',   // 待审核 / 已通过 / 已驳回
+                    submittedAt: new Date().toLocaleString('zh-CN')
+                };
+
+                // 保存到 localStorage (模拟数据库)
+                saveApplication(application);
+                showMessage('✅ 申请提交成功！请等待管理员审核。', 'success');
+                this.reset();
+                exemptAlert.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
