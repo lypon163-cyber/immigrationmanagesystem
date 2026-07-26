@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绿洲共和国 · 审核管理</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🔐 签证审核管理后台</h1>
+                <p class="subtitle">绿洲共和国 · 领事事务局</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item"><span id="totalCount">0</span> 总申请</div>
+                <div class="stat-item"><span id="pendingCount">0</span> 待审核</div>
+                <div class="stat-item"><span id="approvedCount">0</span> 已通过</div>
+                <div class="stat-item"><span id="rejectedCount">0</span> 已驳回</div>
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <button onclick="loadApplications()" class="btn-refresh">🔄 刷新列表</button>
+                <button onclick="clearAllData()" class="btn-danger" style="float:right;">🗑️ 清空所有数据</button>
+            </div>
+
+            <div id="appList" class="app-list">
+                <!-- 动态渲染列表 -->
+            </div>
+
+            <hr>
+            <p class="footer-link"><a href="index.html">← 返回申请页面</a></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadApplications();
+        });
+
+        function loadApplications() {
+            const apps = getApplications();
+            const listDiv = document.getElementById('appList');
+
+            if (apps.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">📭 暂无申请记录</div>';
+                updateStats([]);
+                return;
+            }
+
+            // 按提交时间倒序（最新的在前）
+            apps.sort((a, b) => b.id - a.id);
+
+            let html = '';
+            apps.forEach(app => {
+                const statusClass = app.status === '待审核' ? 'status-pending' :
+                                   app.status === '已通过' ? 'status-approved' : 'status-rejected';
+                html += `
+                    <div class="app-item">
+                        <div class="app-info">
+                            <strong>${app.name}</strong> 
+                            <span class="app-passport">📘 ${app.passport}</span>
+                            <span class="app-nationality">🌍 ${app.nationality}</span>
+                            <span class="app-file">📎 ${app.fileName}</span>
+                            <span class="app-time">🕐 ${app.submittedAt}</span>
+                        </div>
+                        <div class="app-actions">
+                            <span class="status-badge ${statusClass}">${app.status}</span>
+                            ${app.status === '待审核' ? `
+                                <button onclick="updateStatus(${app.id}, '已通过')" class="btn-approve">✅ 通过</button>
+                                <button onclick="updateStatus(${app.id}, '已驳回')" class="btn-reject">❌ 驳回</button>
+                            ` : `
+                                <button onclick="deleteApplication(${app.id})" class="btn-delete">🗑️ 删除</button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listDiv.innerHTML = html;
+            updateStats(apps);
+        }
+
+        function updateStatus(id, newStatus) {
+            if (!confirm(`确认将此申请状态改为「${newStatus}」吗？`)) return;
+            const apps = getApplications();
+            const index = apps.findIndex(a => a.id === id);
+            if (index !== -1) {
+                apps[index].status = newStatus;
+                saveApplicationsList(apps);
+                loadApplications(); // 刷新列表
+            }
+        }
+
+        function deleteApplication(id) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+            let apps = getApplications();
+            apps = apps.filter(a => a.id !== id);
+            saveApplicationsList(apps);
+            loadApplications();
+        }
+
+        function clearAllData() {
+            if (!confirm('⚠️ 确定清空所有申请数据吗？此操作不可恢复！')) return;
+            localStorage.removeItem('oasis_applications');
+            loadApplications();
+        }
+
+        function updateStats(apps) {
+            const total = apps.length;
+            const pending = apps.filter(a => a.status === '待审核').length;
+            const approved = apps.filter(a => a.status === '已通过').length;
+            const rejected = apps.filter(a => a.status === '已驳回').length;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('approvedCount').textContent = approved;
+            document.getElementById('rejectedCount').textContent = rejected;
+        }
+    </script>
+</body>
+</html>
